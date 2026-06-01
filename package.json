@@ -61,10 +61,21 @@
 				"title": "Fold All Duplicate Log Blocks",
 				"icon": "$(collapse-all)",
 				"category": "Log File Highlighter"
+			},
+			{
+				"command": "logFileHighlighter.unfoldAll",
+				"title": "Unfold All",
+				"icon": "$(expand-all)",
+				"category": "Log File Highlighter"
 			}
 		],
 		"menus": {
 			"editor/title": [
+				{
+					"command": "logFileHighlighter.unfoldAll",
+					"when": "editorLangId == log",
+					"group": "navigation"
+				},
 				{
 					"command": "logFileHighlighter.foldAllDuplicates",
 					"when": "editorLangId == log",

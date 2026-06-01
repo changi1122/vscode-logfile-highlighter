@@ -70,7 +70,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             const linesToFold: number[] = [];
             for (const group of byKey.values()) {
-                if (group.length >= 2) {
+                const foldAll = group[0].kind === 'sql';
+                if (foldAll || group.length >= 2) {
                     for (const b of group) {
                         linesToFold.push(b.startLine);
                     }
@@ -78,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             if (linesToFold.length === 0) {
-                vscode.window.showInformationMessage('No repeated log blocks found.');
+                vscode.window.showInformationMessage('No log blocks found to fold.');
                 return;
             }
 
@@ -87,6 +88,15 @@ export function activate(context: vscode.ExtensionContext) {
             await vscode.commands.executeCommand('editor.fold');
             editor.selections = originalSelections;
             vscode.window.showInformationMessage(`Folded ${linesToFold.length} duplicate block(s).`);
+        }));
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('logFileHighlighter.unfoldAll', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.languageId !== Constants.LogLanguageId) {
+                return;
+            }
+            await vscode.commands.executeCommand('editor.unfoldAll');
         }));
 
     // Add to a list of disposables which are disposed when this extension is deactivated.

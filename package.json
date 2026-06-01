@@ -1,6 +1,6 @@
 {
-	"name": "LogFileHighlighter",
-	"displayName": "Log File Highlighter",
+	"name": "logfilehighlighter-extended",
+	"displayName": "Log File Highlighter Extended",
 	"icon": "content/appicon.png",
 	"description": "Adds color highlighting to log files to make it easier to follow the flow of log events and identify problems.",
 	"categories": [

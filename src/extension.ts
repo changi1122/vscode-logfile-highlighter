@@ -10,6 +10,8 @@ import { TimePeriodCalculator } from './TimePeriodCalculator';
 import { TimePeriodController } from './TimePeriodController';
 import { TailController } from './TailController';
 import { TimestampParser } from './TimestampParsers/TimestampParser';
+import { LogFoldingRangeProvider } from './LogFoldingRangeProvider';
+import { Constants } from './Constants';
 
 // this method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
@@ -32,6 +34,15 @@ export function activate(context: vscode.ExtensionContext) {
 
     // tail log files
     const tailController = new TailController();
+
+    // folding provider for duplicate log lines and exception call stacks
+    const foldingProvider = new LogFoldingRangeProvider(timestampParser);
+    context.subscriptions.push(
+        vscode.languages.registerFoldingRangeProvider(
+            { language: Constants.LogLanguageId },
+            foldingProvider
+        )
+    );
 
     // register commands
     context.subscriptions.push(

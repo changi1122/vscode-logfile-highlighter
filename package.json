@@ -166,6 +166,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Enable or disable the tail mode in log files. Scroll to the end of a file to activate it. The status bar will show 'Log File Tail Mode' when it is active."
+				},
+				"logFileHighlighter.enableLogFolding": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable folding of consecutive duplicate log lines (excluding timestamps) and exception call stacks."
 				}
 			}
 		}

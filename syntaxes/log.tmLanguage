@@ -171,6 +171,15 @@
 				<string>comment log.date</string>
 			</dict>
 
+			<!-- Tomcat/Apache dates ("01-Jun-2026") -->
+			<dict>
+				<key>match</key>
+				<string>(?<=(^|\s))\d{2}-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{4}\b</string>
+
+				<key>name</key>
+				<string>comment log.date</string>
+			</dict>
+
 			<!-- Clock times with optional timezone and optional T prefix ("T09:13:16", "09:13:16", "09:13:16.323", "09:13:16+01:00") -->
 			<dict>
 				<key>match</key>

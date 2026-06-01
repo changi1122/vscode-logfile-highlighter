@@ -11,6 +11,7 @@ import { USDateTimeFormatParser } from "./USDateTimeFormatParser";
 import { LittleEndianDateFormatParser } from "./LittleEndianDateFormatParser";
 import { LittleEndianDateTimeFormatParser } from "./LittleEndianDateTimeFormatParser";
 import { IsoSlimDateTimeFormatParser } from "./IsoSlimDateTimeFormatParser";
+import { TomcatDateTimeFormatParser } from "./TomcatDateTimeFormatParser";
 
 export class TimestampParser {
     private parsers: TimestampFormatParser[];
@@ -19,6 +20,7 @@ export class TimestampParser {
         this.parsers = [
             new IsoDateTimeFormatParser(),
             new IsoSlimDateTimeFormatParser(),
+            new TomcatDateTimeFormatParser(),
             new USDateTimeFormatParser(),
             new DanishDateTimeFormatParser(),
             new LittleEndianDateTimeFormatParser(),

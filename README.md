@@ -1,4 +1,12 @@
-# Log File Highlighter
+# Log File Highlighter Extended
+
+> **This is a fork of [emilast/vscode-logfile-highlighter](https://github.com/emilast/vscode-logfile-highlighter) with the following additions:**
+> - **Duplicate log line folding** — groups and folds repeated log lines and exception call stacks
+> - **Fold/unfold all duplicates** — toolbar button and command to fold or unfold all duplicate blocks at once
+> - **SQL block folding** — folds multi-line SQL blocks in log output
+> - **Tomcat date format support** — recognizes `DD-Mon-YYYY HH:mm:ss.SSS` timestamps (e.g. `01-Jun-2026 12:00:00.000`)
+
+---
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)
 

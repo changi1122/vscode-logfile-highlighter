@@ -10,7 +10,7 @@ import { TimePeriodCalculator } from './TimePeriodCalculator';
 import { TimePeriodController } from './TimePeriodController';
 import { TailController } from './TailController';
 import { TimestampParser } from './TimestampParsers/TimestampParser';
-import { LogFoldingRangeProvider } from './LogFoldingRangeProvider';
+import { LogFoldingRangeProvider, LogBlock } from './LogFoldingRangeProvider';
 import { Constants } from './Constants';
 
 // this method is called when the extension is activated
@@ -51,6 +51,43 @@ export function activate(context: vscode.ExtensionContext) {
                 // Remove decorations
                 progressIndicatorController.removeDecorations();
             }));
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('logFileHighlighter.foldAllDuplicates', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.languageId !== Constants.LogLanguageId) {
+                return;
+            }
+
+            const blocks = foldingProvider.computeBlocks(editor.document);
+
+            const byKey = new Map<string, LogBlock[]>();
+            for (const block of blocks) {
+                const list = byKey.get(block.canonicalKey) ?? [];
+                list.push(block);
+                byKey.set(block.canonicalKey, list);
+            }
+
+            const linesToFold: number[] = [];
+            for (const group of byKey.values()) {
+                if (group.length >= 2) {
+                    for (const b of group) {
+                        linesToFold.push(b.startLine);
+                    }
+                }
+            }
+
+            if (linesToFold.length === 0) {
+                vscode.window.showInformationMessage('No repeated log blocks found.');
+                return;
+            }
+
+            const originalSelections = editor.selections;
+            editor.selections = linesToFold.map(n => new vscode.Selection(n, 0, n, 0));
+            await vscode.commands.executeCommand('editor.fold');
+            editor.selections = originalSelections;
+            vscode.window.showInformationMessage(`Folded ${linesToFold.length} duplicate block(s).`);
+        }));
 
     // Add to a list of disposables which are disposed when this extension is deactivated.
     context.subscriptions.push(timeController, customPatternController, progressIndicatorController, tailController);

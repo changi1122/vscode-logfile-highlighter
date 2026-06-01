@@ -7,6 +7,13 @@ const STACK_FRAME_RE = /^\s+at\s+/;
 const STACK_MORE_RE = /^\s+\.\.\. \d+ more$/;
 const EXCEPTION_HEADER_RE = /Exception|Error:|Caused by:/;
 
+export interface LogBlock {
+    startLine: number;
+    endLine: number;
+    canonicalKey: string;
+    kind: 'duplicate' | 'stackTrace';
+}
+
 export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
 
     constructor(private readonly timestampParser: TimestampParser) { }
@@ -20,8 +27,11 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
         if (!config.get<boolean>('enableLogFolding', true)) {
             return [];
         }
+        return this.computeBlocks(document).map(b => new vscode.FoldingRange(b.startLine, b.endLine));
+    }
 
-        const ranges: vscode.FoldingRange[] = [];
+    computeBlocks(document: vscode.TextDocument): LogBlock[] {
+        const blocks: LogBlock[] = [];
         const lineCount = document.lineCount;
 
         // State for duplicate-line detection
@@ -31,6 +41,7 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
 
         // State for stack-trace detection
         let stackStart = -1;
+        let stackLines: string[] = [];
 
         for (let i = 0; i < lineCount; i++) {
             const text = document.lineAt(i).text;
@@ -39,11 +50,13 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
             if (STACK_FRAME_RE.test(text) || STACK_MORE_RE.test(text)) {
                 if (stackStart === -1) {
                     stackStart = i;
+                    stackLines = [];
                 }
-                // While in a stack trace, don't participate in duplicate detection.
+                stackLines.push(this.stripTimestamp(text));
+
                 // Flush any pending duplicate block that ends before the stack trace.
                 if (dupCount >= 2 && dupStart < stackStart) {
-                    ranges.push(new vscode.FoldingRange(dupStart, dupStart + dupCount - 1));
+                    blocks.push({ startLine: dupStart, endLine: dupStart + dupCount - 1, canonicalKey: dupKey!, kind: 'duplicate' });
                 }
                 dupKey = null;
                 dupStart = -1;
@@ -56,25 +69,23 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
                 const stackEnd = i - 1;
                 const framesCount = stackEnd - stackStart + 1;
                 if (framesCount >= 2) {
-                    // Include the preceding exception header in the fold if it looks like one
                     const headerIdx = stackStart - 1;
-                    const foldStart =
-                        headerIdx >= 0 &&
-                        EXCEPTION_HEADER_RE.test(document.lineAt(headerIdx).text)
-                            ? headerIdx
-                            : stackStart;
-                    ranges.push(new vscode.FoldingRange(foldStart, stackEnd));
+                    const hasHeader = headerIdx >= 0 && EXCEPTION_HEADER_RE.test(document.lineAt(headerIdx).text);
+                    const foldStart = hasHeader ? headerIdx : stackStart;
+                    const headerKey = hasHeader ? this.stripTimestamp(document.lineAt(headerIdx).text) : '';
+                    const canonicalKey = headerKey + '\n' + (stackLines[0] ?? '');
+                    blocks.push({ startLine: foldStart, endLine: stackEnd, canonicalKey, kind: 'stackTrace' });
                 }
                 stackStart = -1;
+                stackLines = [];
             }
 
             // --- Duplicate line detection ---
             const key = this.stripTimestamp(text);
 
             if (key === '') {
-                // Empty line breaks any duplicate run
                 if (dupCount >= 2) {
-                    ranges.push(new vscode.FoldingRange(dupStart, dupStart + dupCount - 1));
+                    blocks.push({ startLine: dupStart, endLine: dupStart + dupCount - 1, canonicalKey: dupKey!, kind: 'duplicate' });
                 }
                 dupKey = null;
                 dupStart = -1;
@@ -86,7 +97,7 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
                 dupCount++;
             } else {
                 if (dupCount >= 2) {
-                    ranges.push(new vscode.FoldingRange(dupStart, dupStart + dupCount - 1));
+                    blocks.push({ startLine: dupStart, endLine: dupStart + dupCount - 1, canonicalKey: dupKey!, kind: 'duplicate' });
                 }
                 dupKey = key;
                 dupStart = i;
@@ -96,7 +107,7 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
 
         // Flush trailing duplicate block
         if (dupCount >= 2) {
-            ranges.push(new vscode.FoldingRange(dupStart, dupStart + dupCount - 1));
+            blocks.push({ startLine: dupStart, endLine: dupStart + dupCount - 1, canonicalKey: dupKey!, kind: 'duplicate' });
         }
 
         // Flush trailing stack trace block
@@ -105,16 +116,15 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
             const framesCount = stackEnd - stackStart + 1;
             if (framesCount >= 2) {
                 const headerIdx = stackStart - 1;
-                const foldStart =
-                    headerIdx >= 0 &&
-                    EXCEPTION_HEADER_RE.test(document.lineAt(headerIdx).text)
-                        ? headerIdx
-                        : stackStart;
-                ranges.push(new vscode.FoldingRange(foldStart, stackEnd));
+                const hasHeader = headerIdx >= 0 && EXCEPTION_HEADER_RE.test(document.lineAt(headerIdx).text);
+                const foldStart = hasHeader ? headerIdx : stackStart;
+                const headerKey = hasHeader ? this.stripTimestamp(document.lineAt(headerIdx).text) : '';
+                const canonicalKey = headerKey + '\n' + (stackLines[0] ?? '');
+                blocks.push({ startLine: foldStart, endLine: stackEnd, canonicalKey, kind: 'stackTrace' });
             }
         }
 
-        return ranges;
+        return blocks;
     }
 
     private stripTimestamp(line: string): string {

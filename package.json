@@ -55,8 +55,23 @@
 			{
 				"command": "logFileHighlighter.removeProgressIndicatorDecorations",
 				"title": "Log File Highlighter: Remove Progress Indicator Decorations"
+			},
+			{
+				"command": "logFileHighlighter.foldAllDuplicates",
+				"title": "Fold All Duplicate Log Blocks",
+				"icon": "$(collapse-all)",
+				"category": "Log File Highlighter"
 			}
 		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "logFileHighlighter.foldAllDuplicates",
+					"when": "editorLangId == log",
+					"group": "navigation"
+				}
+			]
+		},
 		"keybindings": [
 			{
 				"command": "logFileHighlighter.removeProgressIndicatorDecorations",

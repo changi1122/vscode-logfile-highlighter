@@ -8,6 +8,7 @@ const STACK_MORE_RE = /^\s+\.\.\. \d+ more$/;
 const EXCEPTION_HEADER_RE = /Exception|Error:|Caused by:/;
 
 const SQL_START_RE = /^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|MERGE|WITH|EXPLAIN|REPLACE)\b/i;
+const LOG_SPECIAL_CHAR_RE = /^\s*[\[{|<>!@#\-]/;
 
 export interface LogBlock {
     startLine: number;
@@ -45,6 +46,7 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
 
         let sqlStart = -1;
         let sqlLines: string[] = [];
+        let sqlDepth = 0;
 
         for (let i = 0; i < lineCount; i++) {
             const text = document.lineAt(i).text;
@@ -62,6 +64,7 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
                         }
                         sqlStart = -1;
                         sqlLines = [];
+                        sqlDepth = 0;
                     }
                 }
                 stackLines.push(this.stripTimestamp(text));
@@ -94,23 +97,30 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
             const key = this.stripTimestamp(text);
 
             // --- SQL block detection ---
-            const hasTimestamp = !!this.timestampParser.getTimestampFromText(text);
+            const ts = this.timestampParser.getTimestampFromText(text);
+            const hasTimestamp = !!ts;
+            const isLogEntry = (!!ts && ts.matchIndex <= 2) || LOG_SPECIAL_CHAR_RE.test(text);
 
             if (sqlStart !== -1) {
-                if (key !== '' && !hasTimestamp) {
+                for (const ch of text) {
+                    if (ch === '(') sqlDepth++;
+                    else if (ch === ')') sqlDepth--;
+                }
+                if (sqlDepth > 0 || (key !== '' && !isLogEntry)) {
                     sqlLines.push(key);
                     continue;
                 }
-                // Empty line or timestamped log line → close SQL block
+                // depth == 0 && (blank line or log entry) → close SQL block
                 const sqlEnd = i - 1;
                 if (sqlEnd - sqlStart + 1 >= 2) {
                     blocks.push({ startLine: sqlStart, endLine: sqlEnd, canonicalKey: sqlLines.join('\n'), kind: 'sql' });
                 }
                 sqlStart = -1;
                 sqlLines = [];
+                sqlDepth = 0;
             }
 
-            if (key !== '' && !hasTimestamp && SQL_START_RE.test(text)) {
+            if (key !== '' && !isLogEntry && SQL_START_RE.test(text)) {
                 if (dupCount >= 2) {
                     blocks.push({ startLine: dupStart, endLine: dupStart + dupCount - 1, canonicalKey: dupKey!, kind: 'duplicate' });
                 }
@@ -119,6 +129,11 @@ export class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
                 dupCount = 0;
                 sqlStart = i;
                 sqlLines = [key];
+                sqlDepth = 0;
+                for (const ch of text) {
+                    if (ch === '(') sqlDepth++;
+                    else if (ch === ')') sqlDepth--;
+                }
                 continue;
             }
 

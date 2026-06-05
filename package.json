@@ -18,7 +18,7 @@
 	"engines": {
 		"vscode": "^1.109.0"
 	},
-	"publisher": "emilast, (extended: changi1122)",
+	"publisher": "emilast,changi1122",
 	"sponsor": {
 		"url": "https://github.com/sponsors/emilast"
 	},

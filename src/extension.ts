@@ -69,11 +69,13 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const linesToFold: number[] = [];
+            const foldedBlocks: LogBlock[] = [];
             for (const group of byKey.values()) {
                 const foldAll = group[0].kind === 'sql';
                 if (foldAll || group.length >= 2) {
                     for (const b of group) {
                         linesToFold.push(b.startLine);
+                        foldedBlocks.push(b);
                     }
                 }
             }
@@ -86,7 +88,18 @@ export function activate(context: vscode.ExtensionContext) {
             const originalSelections = editor.selections;
             editor.selections = linesToFold.map(n => new vscode.Selection(n, 0, n, 0));
             await vscode.commands.executeCommand('editor.fold');
-            editor.selections = originalSelections;
+
+            // Restore selections, but move any cursor inside a folded block to its startLine
+            // to prevent VS Code from auto-unfolding the block.
+            const safeSelections = originalSelections.map(sel => {
+                const line = sel.active.line;
+                const containing = foldedBlocks.find(b => line > b.startLine && line <= b.endLine);
+                if (containing) {
+                    return new vscode.Selection(containing.startLine, 0, containing.startLine, 0);
+                }
+                return sel;
+            });
+            editor.selections = safeSelections;
             vscode.window.showInformationMessage(`Folded ${linesToFold.length} duplicate block(s).`);
         }));
 

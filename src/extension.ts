@@ -11,6 +11,7 @@ import { TimePeriodController } from './TimePeriodController';
 import { TailController } from './TailController';
 import { TimestampParser } from './TimestampParsers/TimestampParser';
 import { LogFoldingRangeProvider, LogBlock } from './LogFoldingRangeProvider';
+import { MessagePreviewController } from './MessagePreviewController';
 import { Constants } from './Constants';
 
 // this method is called when the extension is activated
@@ -111,6 +112,16 @@ export function activate(context: vscode.ExtensionContext) {
             }
             await vscode.commands.executeCommand('editor.unfoldAll');
         }));
+
+    // message preview: show stripped log message as CodeLens above each log line
+    const messagePreviewController = new MessagePreviewController(timestampParser);
+    context.subscriptions.push(
+        messagePreviewController,
+        vscode.languages.registerCodeLensProvider(
+            { language: Constants.LogLanguageId },
+            messagePreviewController.codeLensProvider
+        ),
+    );
 
     // Add to a list of disposables which are disposed when this extension is deactivated.
     context.subscriptions.push(timeController, customPatternController, progressIndicatorController, tailController);

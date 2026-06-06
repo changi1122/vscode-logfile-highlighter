@@ -7,7 +7,7 @@
 		"Other"
 	],
 	"license": "MIT",
-	"version": "3.5.2",
+	"version": "3.5.3",
 	"bugs": {
 		"url": "https://github.com/emilast/vscode-logfile-highlighter/issues"
 	},
@@ -197,6 +197,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Enable folding of consecutive duplicate log lines (excluding timestamps) and exception call stacks."
+				},
+				"logFileHighlighter.messagePreview.enabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Show log message content (with timestamp, log level, and thread name stripped) as a CodeLens above each log line."
 				}
 			}
 		}
